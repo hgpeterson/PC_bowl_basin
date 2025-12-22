@@ -117,9 +117,9 @@ function buoyancy()
     cb = fig.colorbar(img, ax=ax[6], label=L"Buoyancy gradient $\partial_x b$", extend="max", fraction=0.5)
     cb.set_ticks([-2, 0, 2])
 
-    savefig("figures/buoyancy.png")
+    savefig("$(@__DIR__)/buoyancy.png")
     @info "Saved 'figures/buoyancy.png'"
-    savefig("figures/buoyancy.pdf")
+    savefig("$(@__DIR__)/buoyancy.pdf")
     @info "Saved 'figures/buoyancy.pdf'"
     plt.close()
 end
@@ -155,9 +155,9 @@ function f_over_H_map()
     ax.contour(lon, lat, log10.(f_over_H)', levels=range(-9, -5, 20), 
                colors="k", linestyles="-", linewidths=0.2, transform=ccrs.PlateCarree())
     # ax.coastlines(lw=0.25)
-    savefig("figures/f_over_H_map.png")
+    savefig("$(@__DIR__)/f_over_H_map.png")
     @info "Saved 'figures/f_over_H_map.png'"
-    savefig("figures/f_over_H_map.pdf")
+    savefig("$(@__DIR__)/f_over_H_map.pdf")
     @info "Saved 'figures/f_over_H_map.pdf'"
     plt.close()
 end
@@ -222,9 +222,9 @@ function f_over_H()
     cb = fig.colorbar(img, ax=ax[4], label=L"Planetary vorticity $f/H$", extend="max", fraction=1.0)
 
     # save
-    savefig("figures/f_over_H.png")
+    savefig("$(@__DIR__)/f_over_H.png")
     @info "Saved 'figures/f_over_H.png'"
-    savefig("figures/f_over_H.pdf")
+    savefig("$(@__DIR__)/f_over_H.pdf")
     @info "Saved 'figures/f_over_H.pdf'"
     plt.close()
 end
@@ -318,10 +318,105 @@ function zonal_sections()
     cb = fig.colorbar(sm, ax=ax[3, 4], label=L"Vertical flow $w$"*"\n"*L"($\times 10^{-2}$)", fraction=1.0)
 
     # save
-    savefig("figures/zonal_sections.png")
+    savefig("$(@__DIR__)/zonal_sections.png")
     @info "Saved 'figures/zonal_sections.png'"
-    savefig("figures/zonal_sections.pdf")
+    savefig("$(@__DIR__)/zonal_sections.pdf")
     @info "Saved 'figures/zonal_sections.pdf'"
+    plt.close()
+end
+
+"""
+    meridional_sections()
+
+Generate a figure for the response to reviews of the manuscript.
+"""
+function meridional_sections()
+    # setup
+    fig, ax = plt.subplots(3, 4, figsize=(39pc, 24pc), gridspec_kw=Dict("width_ratios"=>[1, 1, 1, 0.05]))
+    ax[1, 1].set_title(L"\beta = 0")
+    ax[1, 2].set_title(L"\beta = 0.5")
+    ax[1, 3].set_title(L"\beta = 1")
+    ax[1, 1].annotate("(a)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    ax[1, 2].annotate("(b)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    ax[1, 3].annotate("(c)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    ax[2, 1].annotate("(d)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    ax[2, 2].annotate("(e)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    ax[2, 3].annotate("(f)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    ax[3, 1].annotate("(g)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    ax[3, 2].annotate("(h)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    ax[3, 3].annotate("(i)", xy=(-0.00, 0.95), xycoords="axes fraction")
+    for a ∈ ax
+        a.axis("equal")
+        a.set_xticks([])
+        a.set_yticks([])
+        a.set_xlim(-1.05, 1.05)
+        a.set_ylim(-1.05, 0.05)
+        a.spines["left"].set_visible(false)
+        a.spines["bottom"].set_visible(false)
+    end
+    for i ∈ 1:3
+        ax[3, i].set_xlabel(L"Meridional coordinate $y$")
+        ax[i, 1].set_ylabel(L"Vertical coordinate $z$")
+        ax[3, i].set_xticks([-1, 0, 1])
+        ax[i, 1].set_yticks([-1, 0])
+    end
+    ax[1, 4].set_visible(false)
+    ax[2, 4].set_visible(false)
+    ax[3, 4].set_visible(false)
+
+    # plot
+    βs = [0.0, 0.5, 1.0]
+    umax = 0.399
+    vmax = 0.230
+    wmax = 0.245
+    for i ∈ eachindex(βs)
+        # load gridded sigma data
+        d = jldopen(@sprintf("data/gridded_sigma_beta%1.1f_eps2e-02_n0257_i040.jld2", βs[i]))
+        x = d["x"]
+        y = d["y"]
+        σ = d["σ"]
+        H = d["H"]
+        u = d["u"]
+        v = d["v"]
+        w = d["w"]
+        b = d["b"]
+        close(d)
+        yy = repeat(y, 1, length(σ))
+        j = argmin(abs.(x)) # index where x = 0
+        z = H[j, :]*σ'
+        u = u[j, :, :]
+        v = v[j, :, :]
+        w = w[j, :, :]
+        fill_nans!(u)
+        fill_nans!(v)
+        fill_nans!(w)
+        u[:, 1] .= 0
+        v[:, 1] .= 0
+        w[:, 1] .= 0
+        w[:, end] .= 0
+        b = z .+ b[j, :, :]
+        fill_nans!(b)
+        b[:, end] .= 0
+        @info "vmax values" nan_max(abs.(u)) nan_max(abs.(v)) nan_max(abs.(w))
+        ax[1, i].pcolormesh(yy, z, 1e2*u, shading="gouraud", cmap="RdBu_r", vmin=-1e2*umax, vmax=1e2*umax, rasterized=true)
+        ax[1, i].contour(yy, z, b, colors="k", linewidths=0.5, alpha=0.3, linestyles="-", levels=-0.9:0.1:-0.1)
+        ax[2, i].pcolormesh(yy, z, 1e2*v, shading="gouraud", cmap="RdBu_r", vmin=-1e2*vmax, vmax=1e2*vmax, rasterized=true)
+        ax[2, i].contour(yy, z, b, colors="k", linewidths=0.5, alpha=0.3, linestyles="-", levels=-0.9:0.1:-0.1)
+        ax[3, i].pcolormesh(yy, z, 1e2*w, shading="gouraud", cmap="RdBu_r", vmin=-1e2*wmax, vmax=1e2*wmax, rasterized=true)
+        ax[3, i].contour(yy, z, b, colors="k", linewidths=0.5, alpha=0.3, linestyles="-", levels=-0.9:0.1:-0.1)
+    end
+    sm = cm.ScalarMappable(norm=colors.Normalize(vmin=-1e2*umax, vmax=1e2*umax), cmap="RdBu_r")
+    cb = fig.colorbar(sm, ax=ax[1, 4], label=L"Zonal flow $u$"*"\n"*L"($\times 10^{-2}$)", fraction=1.0)
+    sm = cm.ScalarMappable(norm=colors.Normalize(vmin=-1e2*vmax, vmax=1e2*vmax), cmap="RdBu_r")
+    cb = fig.colorbar(sm, ax=ax[2, 4], label=L"Meridional flow $v$"*"\n"*L"($\times 10^{-2}$)", fraction=1.0)
+    sm = cm.ScalarMappable(norm=colors.Normalize(vmin=-1e2*wmax, vmax=1e2*wmax), cmap="RdBu_r")
+    cb = fig.colorbar(sm, ax=ax[3, 4], label=L"Vertical flow $w$"*"\n"*L"($\times 10^{-2}$)", fraction=1.0)
+
+    # save
+    savefig("$(@__DIR__)/meridional_sections.png")
+    @info "Saved 'figures/meridional_sections.png'"
+    savefig("$(@__DIR__)/meridional_sections.pdf")
+    @info "Saved 'figures/meridional_sections.pdf'"
     plt.close()
 end
 
@@ -374,9 +469,8 @@ function flow_profiles()
         ax[1].plot(1e2*u[umask], z[umask], label=latexstring(@sprintf("\$\\beta = %0.1f\$", βs[i])))
         ax[2].plot(1e2*v[vmask], z[vmask], label=latexstring(@sprintf("\$\\beta = %0.1f\$", βs[i])))
         ax[3].plot(1e2*w[wmask], z[wmask], label=latexstring(@sprintf("\$\\beta = %0.1f\$", βs[i])))
-        @info "Actual transport:" U=trapz(u[umask], z[umask]) V=trapz(v[vmask], z[vmask])
+        @info @sprintf("Actual transport:\n U = %+.5e\n V = %+.5e", trapz(u[umask], z[umask]), trapz(v[vmask], z[vmask]))
     end
-
 
     # load bx
     d = jldopen("data/buoyancy_1.0e-02.jld2", "r")
@@ -401,9 +495,9 @@ function flow_profiles()
     ax[3].plot(1e2*w, z, "k-.", lw=0.5, label=L"$U = V = 0$ theory")
 
     ax[2].legend(loc=(-0.65, 0.5))
-    savefig("figures/flow_profiles.png")
+    savefig("$(@__DIR__)/flow_profiles.png")
     @info "Saved 'figures/flow_profiles.png'"
-    savefig("figures/flow_profiles.pdf")
+    savefig("$(@__DIR__)/flow_profiles.pdf")
     @info "Saved 'figures/flow_profiles.pdf'"
     plt.close()
 end
@@ -465,9 +559,9 @@ function psi()
     fig.colorbar(img, ax=ax[4], label="Barotropic streamfunction\n"*L"$\Psi$ ($\times 10^{-2}$)", fraction=1.0)
 
     # save
-    savefig("figures/psi.png")
+    savefig("$(@__DIR__)/psi.png")
     @info "Saved 'figures/psi.png'"
-    savefig("figures/psi.pdf")
+    savefig("$(@__DIR__)/psi.pdf")
     @info "Saved 'figures/psi.pdf'"
     plt.close()
 end
@@ -538,8 +632,10 @@ function baroclinic()
     for a ∈ ax
         a.spines["left"].set_visible(false)
         a.axvline(0, lw=0.5, c="k")
-        a.set_xlabel(L"Velocity $u$, $v$")
     end
+    ax[1].set_xlabel(L"Velocity $u_U$, $v_U$")
+    ax[2].set_xlabel(L"Velocity $u_V$, $v_V$")
+    ax[3].set_xlabel(L"Velocity $u_b$, $v_b$")
     ax[1].text(-0.04, 1.05, s="(a)", transform=ax[1].transAxes, ha="center")
     ax[2].text(-0.04, 1.05, s="(b)", transform=ax[2].transAxes, ha="center")
     ax[3].text(-0.04, 1.05, s="(c)", transform=ax[3].transAxes, ha="center")
@@ -570,9 +666,9 @@ function baroclinic()
     ax[3].plot(vbBL, z_sim, "k--", lw=0.5)
     ax[3].set_title(L"$\partial_x b \neq 0$")
     ax[3].legend(loc=(0.55, 0.7))
-    savefig("figures/baroclinic.png")
+    savefig("$(@__DIR__)/baroclinic.png")
     @info "Saved 'figures/baroclinic.png'"
-    savefig("figures/baroclinic.pdf")
+    savefig("$(@__DIR__)/baroclinic.pdf")
     @info "Saved 'figures/baroclinic.pdf'"
     plt.close()
 end
@@ -627,9 +723,9 @@ function psi_bl()
     ax.legend()
     ax.set_xlabel(L"Zonal coordinate $x$")
     ax.set_ylabel(L"Barotropic streamfunction $\Psi$ ($\times 10^{-2}$)")
-    savefig("figures/psi_bl.png")
+    savefig("$(@__DIR__)/psi_bl.png")
     @info "Saved 'figures/psi_bl.png'"
-    savefig("figures/psi_bl.pdf")
+    savefig("$(@__DIR__)/psi_bl.pdf")
     @info "Saved 'figures/psi_bl.pdf'"
     plt.close()
 end
@@ -710,10 +806,10 @@ function alpha()
     ax[2].plot(1e2*v, z, label=L"\alpha = 1/2")
     close(file)
     ax[1].legend(loc=(0.45, 0.65))
-    savefig("figures/alpha.png")
-    println("figures/alpha.png")
-    savefig("figures/alpha.pdf")
-    println("figures/alpha.pdf")
+    savefig("$(@__DIR__)/alpha.png")
+    println("$(@__DIR__)/alpha.png")
+    savefig("$(@__DIR__)/alpha.pdf")
+    println("$(@__DIR__)/alpha.pdf")
     plt.close()
 
     # error
@@ -722,8 +818,9 @@ function alpha()
 end
 
 # buoyancy()
-f_over_H()
+# f_over_H()
 # zonal_sections()
+meridional_sections()
 # flow_profiles()
 # psi()
 # baroclinic()

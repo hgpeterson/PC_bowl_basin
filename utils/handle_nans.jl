@@ -1,4 +1,11 @@
 """
+    nan_max(u)
+
+Find maximum of `u` (ignoring NaN values).
+"""
+nan_max(u) = maximum(x->isnan(x) ? -Inf : x, u)
+
+"""
     fill_nan(f, i, j)
 
 Compute the value of `f[i, j]` by averaging the values of its neighbors in a 3x3 grid.
