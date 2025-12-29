@@ -124,6 +124,11 @@ function buoyancy()
     plt.close()
 end
 
+"""
+    f_over_H_map()
+
+Generate Figure 2 of the manuscript.
+"""
 function f_over_H_map()
     # load filtered data
     d = jldopen("data/topo_25.1_coarsened1024_filtered5e5.jld2", "r")
